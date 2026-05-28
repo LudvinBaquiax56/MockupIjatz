@@ -13,16 +13,15 @@ import {
   Legend,
 } from "recharts"
 
-export function BudgetByStudent() {
-  const { becarios, calcularGastoMensual, getMesActual } = useMockData()
-  const mesActual = getMesActual()
+export function BudgetByStudent({ mes }: { mes: string }) {
+  const { becarios, calcularGastoMensual } = useMockData()
   const data = becarios
     .filter((b) => b.estado === "activo")
     .map((b) => ({
       nombre: `${b.nombre} ${b.apellido.split(" ")[0]}`,
       presupuesto: b.presupuestoMensual,
-      gastado: calcularGastoMensual(b.id, mesActual),
-      disponible: Math.max(0, b.presupuestoMensual - calcularGastoMensual(b.id, mesActual)),
+      gastado: calcularGastoMensual(b.id, mes),
+      disponible: Math.max(0, b.presupuestoMensual - calcularGastoMensual(b.id, mes)),
     }))
 
   return (

@@ -9,10 +9,13 @@ import {
   BarChart3,
   CalendarDays,
   GraduationCap,
-  Settings,
+  LogOut,
   PiggyBank,
   Receipt,
   Banknote,
+  UserCircle,
+  FileText,
+  FolderOpen,
 } from "lucide-react"
 import {
   Sidebar,
@@ -37,12 +40,14 @@ interface NavItem {
   roles: Rol[] | "all"
 }
 
-const navItems: NavItem[] = [
+const staticNavItems: NavItem[] = [
   { title: "Dashboard", href: "/", icon: LayoutDashboard, roles: "all" },
   { title: "Becarios", href: "/becarios", icon: Users, roles: ["director", "encargada", "secretaria", "tesorero"] },
   { title: "Mis Gastos", href: "/mis-gastos", icon: Receipt, roles: ["becario"] },
   { title: "Mi Ahorro", href: "/mi-ahorro", icon: PiggyBank, roles: ["becario"] },
+  { title: "Mis Documentos", href: "/mis-documentos", icon: FileText, roles: ["becario"] },
   { title: "Gastos", href: "/gastos", icon: Wallet, roles: ["director", "encargada", "secretaria"] },
+  { title: "Documentos", href: "/documentos", icon: FolderOpen, roles: ["director", "encargada", "secretaria"] },
   { title: "Pagos", href: "/pagos", icon: Banknote, roles: ["tesorero", "director"] },
   { title: "Reportes", href: "/reportes", icon: BarChart3, roles: ["director", "encargada", "tesorero"] },
   { title: "Calendario", href: "/calendario", icon: CalendarDays, roles: "all" },
@@ -50,7 +55,17 @@ const navItems: NavItem[] = [
 
 export function AppSidebar() {
   const pathname = usePathname()
-  const { currentUser } = useCurrentUser()
+  const { currentUser, logout } = useCurrentUser()
+
+  if (!currentUser) return null
+
+  const perfilItem: NavItem | null = currentUser.rol === "becario" && currentUser.becarioId
+    ? { title: "Mi Perfil", href: `/becarios/${currentUser.becarioId}`, icon: UserCircle, roles: ["becario"] }
+    : null
+
+  const navItems: NavItem[] = perfilItem
+    ? [staticNavItems[0], perfilItem, ...staticNavItems.slice(1)]
+    : staticNavItems
 
   const visibleItems = navItems.filter(
     (item) => item.roles === "all" || item.roles.includes(currentUser.rol)
@@ -105,9 +120,9 @@ export function AppSidebar() {
       <SidebarFooter>
         <SidebarMenu>
           <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Configuracion">
-              <Settings className="size-4" />
-              <span>Configuracion</span>
+            <SidebarMenuButton onClick={logout} tooltip="Cerrar sesion">
+              <LogOut className="size-4" />
+              <span>Cerrar sesion</span>
             </SidebarMenuButton>
           </SidebarMenuItem>
         </SidebarMenu>

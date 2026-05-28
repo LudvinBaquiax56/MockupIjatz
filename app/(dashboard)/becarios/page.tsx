@@ -4,17 +4,22 @@ import { useState } from "react"
 import { BecariosList } from "@/components/becarios/becarios-list"
 import { BecarioDetail } from "@/components/becarios/becario-detail"
 import { AddBecarioDialog } from "@/components/becarios/add-becario-dialog"
+import { EditBecarioDialog } from "@/components/becarios/edit-becario-dialog"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Plus, Search } from "lucide-react"
-import { type Becario } from "@/lib/data"
 import { useMockData } from "@/lib/mock-data-context"
 
 export default function BecariosPage() {
   const { becarios, addBecario, getMesActual, calcularGastoMensual } = useMockData()
   const [search, setSearch] = useState("")
-  const [selectedBecario, setSelectedBecario] = useState<Becario | null>(null)
+  const [selectedBecarioId, setSelectedBecarioId] = useState<string | null>(null)
   const [showAdd, setShowAdd] = useState(false)
+  const [showEdit, setShowEdit] = useState(false)
+
+  const selectedBecario = selectedBecarioId
+    ? becarios.find((b) => b.id === selectedBecarioId) ?? null
+    : null
 
   const filtered = becarios.filter(
     (b) =>
@@ -53,12 +58,13 @@ export default function BecariosPage() {
       {selectedBecario ? (
         <BecarioDetail
           becario={selectedBecario}
-          onBack={() => setSelectedBecario(null)}
+          onBack={() => setSelectedBecarioId(null)}
+          onEdit={() => setShowEdit(true)}
         />
       ) : (
         <BecariosList
           becarios={filtered}
-          onSelect={setSelectedBecario}
+          onSelect={(b) => setSelectedBecarioId(b.id)}
           getGastoTotal={(becarioId) => calcularGastoMensual(becarioId, getMesActual())}
         />
       )}
@@ -70,6 +76,14 @@ export default function BecariosPage() {
           addBecario(data)
         }}
       />
+
+      {selectedBecario && (
+        <EditBecarioDialog
+          becario={selectedBecario}
+          open={showEdit}
+          onOpenChange={setShowEdit}
+        />
+      )}
     </div>
   )
 }

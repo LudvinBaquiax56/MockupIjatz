@@ -1,7 +1,7 @@
 "use client"
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { becarios } from "@/lib/data"
+import { useMockData } from "@/lib/mock-data-context"
 import {
   PieChart,
   Pie,
@@ -14,32 +14,28 @@ import {
 const COLORS = [
   "oklch(0.45 0.18 160)",
   "oklch(0.55 0.15 200)",
-  "oklch(0.65 0.12 80)",
 ]
 
+const nivelLabel: Record<string, string> = {
+  diversificado: "Diversificado",
+  universitario: "Universitario",
+}
+
 export function BecaDistribution() {
+  const { becarios } = useMockData()
+
   const distribution: Record<string, number> = {}
   becarios.forEach((b) => {
-    const label =
-      b.tipoBeca === "completa"
-        ? "Completa"
-        : b.tipoBeca === "parcial"
-        ? "Parcial"
-        : "Investigacion"
+    const label = nivelLabel[b.nivel] ?? b.nivel
     distribution[label] = (distribution[label] || 0) + 1
   })
 
-  const data = Object.entries(distribution).map(([name, value]) => ({
-    name,
-    value,
-  }))
+  const data = Object.entries(distribution).map(([name, value]) => ({ name, value }))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">
-          Distribucion por Tipo de Beca
-        </CardTitle>
+        <CardTitle className="text-base">Distribucion por Nivel Educativo</CardTitle>
       </CardHeader>
       <CardContent>
         <div className="h-[400px]">
@@ -56,10 +52,7 @@ export function BecaDistribution() {
                 label={({ name, value }) => `${name}: ${value}`}
               >
                 {data.map((_, index) => (
-                  <Cell
-                    key={`cell-${index}`}
-                    fill={COLORS[index % COLORS.length]}
-                  />
+                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip

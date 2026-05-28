@@ -29,7 +29,7 @@ export function BecarioDashboard() {
     getHistorialAhorro,
     getMesActual,
   } = useMockData()
-  const becario = getBecarioById(currentUser.becarioId)
+  const becario = getBecarioById(currentUser?.becarioId)
 
   if (!becario) {
     return (

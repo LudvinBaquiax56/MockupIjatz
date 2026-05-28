@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { Calendar } from "@/components/ui/calendar"
 import { actividades, NIVELES } from "@/lib/data"
 import { useMockData } from "@/lib/mock-data-context"
+import { useCurrentUser } from "@/lib/auth-context"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
   Bell,
@@ -33,11 +34,14 @@ const prioridadStyles: Record<string, string> = {
 }
 
 export default function CalendarioPage() {
-  const { recordatorios, addRecordatorio } = useMockData()
+  const { recordatorios, addRecordatorio, getBecarioById } = useMockData()
+  const { currentUser, isBecario } = useCurrentUser()
   const [date, setDate] = useState<Date | undefined>(new Date())
   const [showAdd, setShowAdd] = useState(false)
   const [filtroNivel, setFiltroNivel] = useState<string>("todos")
   const [filtroTipo, setFiltroTipo] = useState<string>("todos")
+
+  const becario = isBecario ? getBecarioById(currentUser?.becarioId) : null
 
   // Combine reminders and activities for date highlights
   const eventDates = [
@@ -46,7 +50,13 @@ export default function CalendarioPage() {
   ]
 
   const sortedReminders = [...recordatorios]
-    .filter((r) => (filtroNivel === "todos" ? true : r.nivelDestino === filtroNivel || r.nivelDestino === "todos"))
+    .filter((r) => {
+      if (isBecario) {
+        if (!becario) return false
+        return r.nivelDestino === becario.nivel || r.nivelDestino === "todos"
+      }
+      return filtroNivel === "todos" ? true : r.nivelDestino === filtroNivel || r.nivelDestino === "todos"
+    })
     .filter((r) => (filtroTipo === "todos" ? true : r.tipo === filtroTipo))
     .sort(
     (a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime()
@@ -67,10 +77,12 @@ export default function CalendarioPage() {
             Recordatorios, actividades y eventos del programa
           </p>
         </div>
-        <Button onClick={() => setShowAdd(true)} className="gap-2">
-          <Plus className="size-4" />
-          Nuevo Recordatorio
-        </Button>
+        {!isBecario && (
+          <Button onClick={() => setShowAdd(true)} className="gap-2">
+            <Plus className="size-4" />
+            Nuevo Recordatorio
+          </Button>
+        )}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[350px_1fr]">
@@ -104,19 +116,21 @@ export default function CalendarioPage() {
               <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                 <CardTitle className="text-base">Recordatorios</CardTitle>
                 <div className="flex gap-2">
-                  <Select value={filtroNivel} onValueChange={setFiltroNivel}>
-                    <SelectTrigger className="w-[180px] h-8">
-                      <SelectValue placeholder="Filtrar nivel" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="todos">Todos los niveles</SelectItem>
-                      {NIVELES.map((n) => (
-                        <SelectItem key={n.value} value={n.value}>
-                          {n.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  {!isBecario && (
+                    <Select value={filtroNivel} onValueChange={setFiltroNivel}>
+                      <SelectTrigger className="w-[180px] h-8">
+                        <SelectValue placeholder="Filtrar nivel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="todos">Todos los niveles</SelectItem>
+                        {NIVELES.map((n) => (
+                          <SelectItem key={n.value} value={n.value}>
+                            {n.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  )}
                   <Select value={filtroTipo} onValueChange={setFiltroTipo}>
                     <SelectTrigger className="w-[160px] h-8">
                       <SelectValue placeholder="Filtrar tipo" />

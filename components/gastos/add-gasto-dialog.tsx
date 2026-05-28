@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { CATEGORIAS_GASTO, type Becario, type CategoriaGasto } from "@/lib/data"
+import { useMockData } from "@/lib/mock-data-context"
 import { toast } from "sonner"
 
 type NewGastoInput = {
@@ -29,6 +30,7 @@ export function AddGastoDialog({
   becarios: Becario[]
   onSubmit: (data: NewGastoInput) => void
 }) {
+  const { calcularGastoMensual } = useMockData()
   const becariosActivos = becarios.filter((b) => b.estado === "activo")
   const [becarioId, setBecarioId] = useState("")
   const [concepto, setConcepto] = useState("")
@@ -55,6 +57,12 @@ export function AddGastoDialog({
       toast.error("Ingresa un monto valido")
       return
     }
+    const mesFecha = fecha.slice(0, 7)
+    const gastoAcumulado = calcularGastoMensual(becarioId, mesFecha)
+    const becario = becarios.find((b) => b.id === becarioId)
+    const presupuesto = becario?.presupuestoMensual ?? 0
+    const totalConNuevo = gastoAcumulado + montoNum
+
     onSubmit({
       becarioId,
       concepto: concepto.trim(),
@@ -62,7 +70,14 @@ export function AddGastoDialog({
       monto: montoNum,
       fecha,
     })
-    toast.success("Gasto registrado exitosamente")
+
+    if (presupuesto > 0 && totalConNuevo > presupuesto) {
+      toast.warning("Este gasto supera el presupuesto mensual del becario")
+    } else if (presupuesto > 0 && totalConNuevo / presupuesto >= 0.8) {
+      toast.warning("El becario ha superado el 80% de su presupuesto este mes")
+    } else {
+      toast.success("Gasto registrado exitosamente")
+    }
     reset()
     onOpenChange(false)
   }

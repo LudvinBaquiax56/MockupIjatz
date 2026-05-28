@@ -20,7 +20,7 @@ import {
 export default function MiAhorroPage() {
   const { currentUser } = useCurrentUser()
   const { getBecarioById, calcularAhorroMensual, calcularAhorroAcumulado, getHistorialAhorro, getMesActual } = useMockData()
-  const becario = getBecarioById(currentUser.becarioId)
+  const becario = getBecarioById(currentUser?.becarioId)
 
   if (!becario) {
     return (

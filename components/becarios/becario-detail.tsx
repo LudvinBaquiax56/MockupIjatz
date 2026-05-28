@@ -12,12 +12,11 @@ import {
   Phone,
   GraduationCap,
   Calendar,
-  Wallet,
+  Pencil,
 } from "lucide-react"
 import {
   type Becario,
   actividades,
-  formatTipoBeca,
   formatEstado,
   formatCategoria,
   formatNivel,
@@ -33,9 +32,11 @@ const estadoStyles: Record<string, string> = {
 export function BecarioDetail({
   becario,
   onBack,
+  onEdit,
 }: {
   becario: Becario
   onBack: () => void
+  onEdit?: () => void
 }) {
   const { getGastosByBecario, calcularGastoMensual, getMesActual } = useMockData()
   const becarioGastos = getGastosByBecario(becario.id)
@@ -49,14 +50,22 @@ export function BecarioDetail({
 
   return (
     <div className="flex flex-col gap-6">
-      <Button
-        variant="ghost"
-        onClick={onBack}
-        className="w-fit gap-2 text-muted-foreground"
-      >
-        <ArrowLeft className="size-4" />
-        Volver a la lista
-      </Button>
+      <div className="flex items-center gap-2">
+        <Button
+          variant="ghost"
+          onClick={onBack}
+          className="w-fit gap-2 text-muted-foreground"
+        >
+          <ArrowLeft className="size-4" />
+          Volver
+        </Button>
+        {onEdit && (
+          <Button variant="outline" size="sm" onClick={onEdit} className="gap-1.5">
+            <Pencil className="size-3.5" />
+            Editar mis datos
+          </Button>
+        )}
+      </div>
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Profile card */}
@@ -108,10 +117,7 @@ export function BecarioDetail({
                     })}
                   </span>
                 </div>
-                <div className="flex items-center gap-2 text-muted-foreground">
-                  <Wallet className="size-4" />
-                  <span>Beca {formatTipoBeca(becario.tipoBeca)}</span>
-                </div>
+
               </div>
             </div>
           </CardContent>

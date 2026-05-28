@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { NIVELES, type NivelEducativo, type TipoBeca } from "@/lib/data"
+import { NIVELES, type NivelEducativo } from "@/lib/data"
 import { toast } from "sonner"
 
 type NewBecarioInput = {
@@ -18,7 +18,6 @@ type NewBecarioInput = {
   institucion: string
   nivel: NivelEducativo
   grado: string
-  tipoBeca: TipoBeca
   presupuestoMensual: number
 }
 
@@ -39,7 +38,6 @@ export function AddBecarioDialog({
   const [institucion, setInstitucion] = useState("")
   const [nivel, setNivel] = useState<NivelEducativo | "">("")
   const [grado, setGrado] = useState("")
-  const [tipoBeca, setTipoBeca] = useState<TipoBeca | "">("")
   const [presupuestoMensual, setPresupuestoMensual] = useState("")
 
   function reset() {
@@ -51,14 +49,13 @@ export function AddBecarioDialog({
     setInstitucion("")
     setNivel("")
     setGrado("")
-    setTipoBeca("")
     setPresupuestoMensual("")
   }
 
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
-    if (!nivel || !tipoBeca) {
-      toast.error("Completa nivel y tipo de beca")
+    if (!nivel) {
+      toast.error("Selecciona el nivel educativo")
       return
     }
     const presupuesto = Number(presupuestoMensual)
@@ -75,7 +72,6 @@ export function AddBecarioDialog({
       institucion: institucion.trim(),
       nivel,
       grado: grado.trim(),
-      tipoBeca,
       presupuestoMensual: presupuesto,
     })
     toast.success("Becario registrado exitosamente")
@@ -146,32 +142,17 @@ export function AddBecarioDialog({
               <Input id="grado" value={grado} onChange={(e) => setGrado(e.target.value)} placeholder="6to Semestre / 3ro Basico" required />
             </div>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="tipoBeca">Tipo de Beca</Label>
-              <Select value={tipoBeca} onValueChange={(v) => setTipoBeca(v as TipoBeca)} required>
-                <SelectTrigger>
-                  <SelectValue placeholder="Seleccionar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="completa">Completa</SelectItem>
-                  <SelectItem value="parcial">Parcial</SelectItem>
-                  <SelectItem value="investigacion">Investigacion</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label htmlFor="presupuesto">Presupuesto Mensual (Q)</Label>
-              <Input
-                id="presupuesto"
-                type="number"
-                min="1"
-                value={presupuestoMensual}
-                onChange={(e) => setPresupuestoMensual(e.target.value)}
-                placeholder="2000"
-                required
-              />
-            </div>
+          <div className="flex flex-col gap-2">
+            <Label htmlFor="presupuesto">Presupuesto Mensual (Q)</Label>
+            <Input
+              id="presupuesto"
+              type="number"
+              min="1"
+              value={presupuestoMensual}
+              onChange={(e) => setPresupuestoMensual(e.target.value)}
+              placeholder="2000"
+              required
+            />
           </div>
           <div className="flex justify-end gap-2 pt-2">
             <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>

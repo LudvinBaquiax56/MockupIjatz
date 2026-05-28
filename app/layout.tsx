@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next'
 import { Inter, DM_Sans } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from 'sonner'
+import { AuthProvider } from '@/lib/auth-context'
 import './globals.css'
 
 const inter = Inter({ subsets: ['latin'], variable: '--font-inter' })
@@ -24,9 +25,11 @@ export default function RootLayout({
   return (
     <html lang="es" suppressHydrationWarning>
       <body className={`${inter.variable} ${dmSans.variable} font-sans antialiased`}>
-        {children}
-        <Toaster richColors position="top-right" />
-        <Analytics />
+        <AuthProvider>
+          {children}
+          <Toaster richColors position="top-right" />
+          <Analytics />
+        </AuthProvider>
       </body>
     </html>
   )

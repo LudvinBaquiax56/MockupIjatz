@@ -1,21 +1,42 @@
 "use client"
 
-import { createContext, useContext, useMemo, useState, type ReactNode } from "react"
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react"
+
+function readLS<T>(key: string, fallback: T): T {
+  try {
+    const raw = localStorage.getItem(key)
+    return raw ? (JSON.parse(raw) as T) : fallback
+  } catch {
+    return fallback
+  }
+}
+
+function usePersistedState<T>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => readLS(key, initial))
+  useEffect(() => {
+    localStorage.setItem(key, JSON.stringify(value))
+  }, [key, value])
+  return [value, setValue] as const
+}
 import {
   becarios as initialBecarios,
   gastos as initialGastos,
   recordatorios as initialRecordatorios,
   pagos as initialPagos,
   descuentos as initialDescuentos,
+  tareasAsignadas as initialTareas,
+  entregasDocumentos as initialEntregas,
   type Becario,
   type Descuento,
   type Gasto,
   type Pago,
   type Recordatorio,
+  type TareaAsignada,
+  type EntregaDocumento,
   type CategoriaGasto,
   type NivelEducativo,
-  type TipoBeca,
   type EstadoBecario,
+  type TipoDocumento,
 } from "@/lib/data"
 
 type AddGastoInput = {
@@ -24,6 +45,7 @@ type AddGastoInput = {
   categoria: CategoriaGasto
   monto: number
   fecha: string
+  imagenes?: string[]
 }
 
 type AddBecarioInput = {
@@ -35,7 +57,6 @@ type AddBecarioInput = {
   institucion: string
   nivel: NivelEducativo
   grado: string
-  tipoBeca: TipoBeca
   presupuestoMensual: number
   estado?: EstadoBecario
 }
@@ -49,15 +70,39 @@ type AddRecordatorioInput = {
   nivelDestino: NivelEducativo | "todos"
 }
 
+type AddTareaInput = {
+  titulo: string
+  descripcion: string
+  tipo: TipoDocumento
+  fechaLimite: string
+  nivelDestino: NivelEducativo | "todos"
+  creadaPor: string
+}
+
+type AddEntregaInput = {
+  tareaId: string
+  becarioId: string
+  archivos: string[]
+  comentario?: string
+}
+
 interface MockDataContextType {
   becarios: Becario[]
   gastos: Gasto[]
   recordatorios: Recordatorio[]
   pagos: Pago[]
   descuentos: Descuento[]
+  tareas: TareaAsignada[]
+  entregas: EntregaDocumento[]
   addGasto: (input: AddGastoInput) => void
+  updateGasto: (id: string, data: Partial<Gasto>) => void
+  deleteGasto: (id: string) => void
   addBecario: (input: AddBecarioInput) => void
+  updateBecario: (id: string, data: Partial<Becario>) => void
   addRecordatorio: (input: AddRecordatorioInput) => void
+  addTarea: (input: AddTareaInput) => void
+  addEntrega: (input: AddEntregaInput) => void
+  updateEntrega: (id: string, data: Partial<EntregaDocumento>) => void
   marcarPagoPagado: (pagoId: string, fechaPago?: string) => void
   getBecarioById: (becarioId?: string) => Becario | undefined
   getGastosByBecario: (becarioId: string) => Gasto[]
@@ -73,6 +118,10 @@ interface MockDataContextType {
     ahorro: number
   }[]
   getMesActual: () => string
+  getEntregasByBecario: (becarioId: string) => EntregaDocumento[]
+  getEntregasByTarea: (tareaId: string) => EntregaDocumento[]
+  getTareasParaBecario: (nivel: NivelEducativo) => TareaAsignada[]
+  getEntregaByTareaYBecario: (tareaId: string, becarioId: string) => EntregaDocumento | undefined
 }
 
 const MockDataContext = createContext<MockDataContextType | null>(null)
@@ -94,11 +143,13 @@ function toMonthLabel(mes: string) {
 }
 
 export function MockDataProvider({ children }: { children: ReactNode }) {
-  const [becarios, setBecarios] = useState<Becario[]>(initialBecarios)
-  const [gastos, setGastos] = useState<Gasto[]>(initialGastos)
-  const [recordatorios, setRecordatorios] = useState<Recordatorio[]>(initialRecordatorios)
-  const [pagos, setPagos] = useState<Pago[]>(initialPagos)
+  const [becarios, setBecarios] = usePersistedState<Becario[]>("beca_becarios", initialBecarios)
+  const [gastos, setGastos] = usePersistedState<Gasto[]>("beca_gastos", initialGastos)
+  const [recordatorios, setRecordatorios] = usePersistedState<Recordatorio[]>("beca_recordatorios", initialRecordatorios)
+  const [pagos, setPagos] = usePersistedState<Pago[]>("beca_pagos", initialPagos)
   const [descuentos] = useState<Descuento[]>(initialDescuentos)
+  const [tareas, setTareas] = usePersistedState<TareaAsignada[]>("beca_tareas", initialTareas)
+  const [entregas, setEntregas] = usePersistedState<EntregaDocumento[]>("beca_entregas", initialEntregas)
 
   function addGasto(input: AddGastoInput) {
     const becario = becarios.find((b) => b.id === input.becarioId)
@@ -113,8 +164,17 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       monto: input.monto,
       fecha: input.fecha,
       mes: getMesFromFecha(input.fecha),
+      imagenes: input.imagenes ?? [],
     }
     setGastos((prev) => [nuevo, ...prev])
+  }
+
+  function updateGasto(id: string, data: Partial<Gasto>) {
+    setGastos((prev) => prev.map((g) => (g.id === id ? { ...g, ...data } : g)))
+  }
+
+  function deleteGasto(id: string) {
+    setGastos((prev) => prev.filter((g) => g.id !== id))
   }
 
   function addBecario(input: AddBecarioInput) {
@@ -129,12 +189,15 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       institucion: input.institucion,
       nivel: input.nivel,
       grado: input.grado,
-      tipoBeca: input.tipoBeca,
       estado: input.estado ?? "activo",
       presupuestoMensual: input.presupuestoMensual,
       fechaInicio: new Date().toISOString().slice(0, 10),
     }
     setBecarios((prev) => [nuevo, ...prev])
+  }
+
+  function updateBecario(id: string, data: Partial<Becario>) {
+    setBecarios((prev) => prev.map((b) => (b.id === id ? { ...b, ...data } : b)))
   }
 
   function addRecordatorio(input: AddRecordatorioInput) {
@@ -149,6 +212,41 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       nivelDestino: input.nivelDestino,
     }
     setRecordatorios((prev) => [nuevo, ...prev])
+  }
+
+  function addTarea(input: AddTareaInput) {
+    const nextId = `t${tareas.length + 1}`
+    const nueva: TareaAsignada = {
+      id: nextId,
+      titulo: input.titulo,
+      descripcion: input.descripcion,
+      tipo: input.tipo,
+      fechaLimite: input.fechaLimite,
+      nivelDestino: input.nivelDestino,
+      creadaPor: input.creadaPor,
+    }
+    setTareas((prev) => [nueva, ...prev])
+  }
+
+  function addEntrega(input: AddEntregaInput) {
+    const becario = becarios.find((b) => b.id === input.becarioId)
+    if (!becario) return
+    const nextId = `e${entregas.length + 1}`
+    const nueva: EntregaDocumento = {
+      id: nextId,
+      tareaId: input.tareaId,
+      becarioId: input.becarioId,
+      becarioNombre: `${becario.nombre} ${becario.apellido}`,
+      archivos: input.archivos,
+      comentario: input.comentario,
+      fechaEntrega: new Date().toISOString().slice(0, 10),
+      estado: "entregado",
+    }
+    setEntregas((prev) => [nueva, ...prev])
+  }
+
+  function updateEntrega(id: string, data: Partial<EntregaDocumento>) {
+    setEntregas((prev) => prev.map((e) => (e.id === id ? { ...e, ...data } : e)))
   }
 
   function marcarPagoPagado(pagoId: string, fechaPago?: string) {
@@ -209,6 +307,22 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
     })
   }
 
+  function getEntregasByBecario(becarioId: string) {
+    return entregas.filter((e) => e.becarioId === becarioId)
+  }
+
+  function getEntregasByTarea(tareaId: string) {
+    return entregas.filter((e) => e.tareaId === tareaId)
+  }
+
+  function getTareasParaBecario(nivel: NivelEducativo) {
+    return tareas.filter((t) => t.nivelDestino === nivel || t.nivelDestino === "todos")
+  }
+
+  function getEntregaByTareaYBecario(tareaId: string, becarioId: string) {
+    return entregas.find((e) => e.tareaId === tareaId && e.becarioId === becarioId)
+  }
+
   const value = useMemo<MockDataContextType>(
     () => ({
       becarios,
@@ -216,9 +330,17 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       recordatorios,
       pagos,
       descuentos,
+      tareas,
+      entregas,
       addGasto,
+      updateGasto,
+      deleteGasto,
       addBecario,
+      updateBecario,
       addRecordatorio,
+      addTarea,
+      addEntrega,
+      updateEntrega,
       marcarPagoPagado,
       getBecarioById,
       getGastosByBecario,
@@ -228,8 +350,12 @@ export function MockDataProvider({ children }: { children: ReactNode }) {
       calcularAhorroAcumulado,
       getHistorialAhorro,
       getMesActual,
+      getEntregasByBecario,
+      getEntregasByTarea,
+      getTareasParaBecario,
+      getEntregaByTareaYBecario,
     }),
-    [becarios, gastos, recordatorios, pagos, descuentos]
+    [becarios, gastos, recordatorios, pagos, descuentos, tareas, entregas]
   )
 
   return <MockDataContext.Provider value={value}>{children}</MockDataContext.Provider>
