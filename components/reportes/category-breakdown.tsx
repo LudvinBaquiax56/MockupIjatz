@@ -1,8 +1,10 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useMockData } from "@/lib/mock-data-context"
-import { formatCategoria } from "@/lib/data"
+import { formatCategoria, formatMes } from "@/lib/data"
 import {
   PieChart,
   Pie,
@@ -23,7 +25,14 @@ const COLORS = [
 export function CategoryBreakdown({ mes }: { mes: string }) {
   const { gastos } = useMockData()
 
-  const filtrados = gastos.filter((g) => g.mes === mes)
+  const mesesDisponibles = useMemo(
+    () => Array.from(new Set(gastos.map((g) => g.mes))).sort((a, b) => b.localeCompare(a)),
+    [gastos]
+  )
+
+  const [mesLocal, setMesLocal] = useState(mes)
+
+  const filtrados = gastos.filter((g) => g.mes === mesLocal)
   const categorias: Record<string, number> = {}
   filtrados.forEach((g) => {
     categorias[g.categoria] = (categorias[g.categoria] || 0) + g.monto
@@ -36,9 +45,19 @@ export function CategoryBreakdown({ mes }: { mes: string }) {
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">
-          Desglose por Categoria
-        </CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="text-base">Desglose por Categoria</CardTitle>
+          <Select value={mesLocal} onValueChange={setMesLocal}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesDisponibles.map((m) => (
+                <SelectItem key={m} value={m}>{formatMes(m)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-100">

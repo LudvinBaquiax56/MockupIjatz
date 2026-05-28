@@ -1,7 +1,10 @@
 "use client"
 
+import { useState, useMemo } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useMockData } from "@/lib/mock-data-context"
+import { formatMes } from "@/lib/data"
 import {
   BarChart,
   Bar,
@@ -14,22 +17,40 @@ import {
 } from "recharts"
 
 export function BudgetByStudent({ mes }: { mes: string }) {
-  const { becarios, calcularGastoMensual } = useMockData()
+  const { becarios, gastos, calcularGastoMensual } = useMockData()
+
+  const mesesDisponibles = useMemo(
+    () => Array.from(new Set(gastos.map((g) => g.mes))).sort((a, b) => b.localeCompare(a)),
+    [gastos]
+  )
+
+  const [mesLocal, setMesLocal] = useState(mes)
+
   const data = becarios
     .filter((b) => b.estado === "activo")
     .map((b) => ({
       nombre: `${b.nombre} ${b.apellido.split(" ")[0]}`,
       presupuesto: b.presupuestoMensual,
-      gastado: calcularGastoMensual(b.id, mes),
-      disponible: Math.max(0, b.presupuestoMensual - calcularGastoMensual(b.id, mes)),
+      gastado: calcularGastoMensual(b.id, mesLocal),
+      disponible: Math.max(0, b.presupuestoMensual - calcularGastoMensual(b.id, mesLocal)),
     }))
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-base">
-          Presupuesto vs Gastos por Becario
-        </CardTitle>
+        <div className="flex items-center justify-between gap-4">
+          <CardTitle className="text-base">Presupuesto vs Gastos por Becario</CardTitle>
+          <Select value={mesLocal} onValueChange={setMesLocal}>
+            <SelectTrigger className="w-36">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {mesesDisponibles.map((m) => (
+                <SelectItem key={m} value={m}>{formatMes(m)}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </CardHeader>
       <CardContent>
         <div className="h-[400px]">
